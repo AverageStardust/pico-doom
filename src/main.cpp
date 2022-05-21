@@ -6,13 +6,14 @@
 
 using namespace picosystem;
 
-PlayerEntity player* = entity::createPlayer(2.5, 2.5);
+PlayerEntity* player = new PlayerEntity(2.5, 2.5);
 
 void init() {
+	addEntity(player);
 }
 
 void _update(uint32_t tick) {
-	player.angle += 0.01;
+	updateEntities();
 }
 
 void update(uint32_t tick) {
@@ -24,7 +25,7 @@ void update(uint32_t tick) {
 }
 
 void draw(uint32_t tick) {
-	drawsys::render(&player);
+	drawsys::render(player);
 
 	pen(15, 0, 0);
 	text(std::to_string(stats.fps), 0, 0);

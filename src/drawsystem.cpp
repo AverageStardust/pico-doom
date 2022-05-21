@@ -122,7 +122,7 @@ namespace drawsys {
 		return angle + (float(x) - 119.5) * 0.006;
 	}
 
-	void castWalls(entity::AbstractEntity* player) {
+	void castWalls(AbstractEntity* player) {
 		float
 			x = player->x,
 			y = player->y,
@@ -134,7 +134,7 @@ namespace drawsys {
 		}
 	}
 
-	void renderSlices(entity::AbstractEntity* player) {
+	void renderSlices(AbstractEntity* player) {
 		float angle = player->angle;
 
 		for (int x = 0; x < 240; x += 3) {
@@ -174,7 +174,7 @@ namespace drawsys {
 			}
 			int startIndex = x + endY * 240;
 			for (int i = startIndex; i < 240 * 240; i += 240) {
-				SCREEN->data[i] = 0x21F4;
+				SCREEN->data[i] = 0x22F3;
 			}
 			// draw contents of column
 			for (int i = 0; i < columnCount[x]; i++) {
@@ -207,7 +207,7 @@ namespace drawsys {
 		}
 	}
 
-	void render(entity::AbstractEntity* player) {
+	void render(AbstractEntity* player) {
 		castWalls(player);
 		renderSlices(player);
 	}
