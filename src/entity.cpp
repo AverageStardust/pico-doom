@@ -129,20 +129,23 @@ public:
 };
 
 class PlayerEntity : public AbstractAnimateEntity {
+public:
+	float headBob;
 private:
 	float angularVelocity;
 public:
 	explicit PlayerEntity(float _x, float _y)
 		: AbstractAnimateEntity(_x, _y, 0.2, 100) {
+		headBob = 0.0;
 		angularVelocity = 0.0;
 	}
 
 	void update() {
 		if (button(LEFT)) {
-			angularVelocity = std::max(-0.18, abs(angularVelocity - 0.008) * -1.7);
+			angularVelocity = std::min(0.18, abs(angularVelocity + 0.008) * 1.7);
 		}
 		if (button(RIGHT)) {
-			angularVelocity = std::min(0.18, abs(angularVelocity + 0.008) * 1.7);
+			angularVelocity = std::max(-0.18, abs(angularVelocity - 0.008) * -1.7);
 		}
 
 		angularVelocity *= 0.6;
@@ -163,6 +166,8 @@ public:
 		rotateVector2(vx, vy, -angle);
 		updateKinematics();
 		collideLevel();
+
+		headBob = (abs(sin(time() * 0.007)) - 0.5) * 130.0 * hypot(vx, vy);
 	}
 
 	void draw() {

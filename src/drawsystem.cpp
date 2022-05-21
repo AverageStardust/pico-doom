@@ -15,12 +15,13 @@ int sign(float val) {
 namespace drawsys {
 	const int TILE_WIDTH = 64;
 	const int TILE_HEIGHT = 64;
-	const int TILE_SHEET_WIDTH = _spritesheet->w / TILE_WIDTH;
+	const int TILE_SHEET_WIDTH = _spritesheet->h / TILE_WIDTH;
 
 	const int PALETTE_X = 256;
 	const int PALETTE_Y = 191;
 	const int SCENE_TEXTURE_X = 256;
 	const int SCENE_TEXTURE_Y = 128;
+	const float SCENE_WALL_SCALE = 90.0;
 
 	struct DrawSlice {
 		int startY;
@@ -48,7 +49,7 @@ namespace drawsys {
 		appendSlice(x, depth, slice);
 	}
 
-	void castWall(float x, float y, float theta, int i) {
+	void castWall(float x, float y, float z, float theta, int i) {
 		float dirX = sin(theta), dirY = cos(theta);
 		int
 			mapX = int(x),
@@ -104,14 +105,15 @@ namespace drawsys {
 
 	hitGeneral:
 		int tile = (tileData % 256);
-		int wallScale = (tileData >> 8) % 16;
+		float wallScale = (tileData >> 8) % 16;
 		int textureHeight = tileData >> 12;
 
-		int wallHeight = int(90.0 / wallDist);
+		int wallStartOffset = int((SCENE_WALL_SCALE * wallScale - z) / wallDist);
+		int wallEndOffset = int((SCENE_WALL_SCALE + z) / wallDist);
 
 		DrawSlice slice;
-		slice.startY = 120 - wallHeight * wallScale;
-		slice.endY = 120 + wallHeight;
+		slice.startY = 120 - wallStartOffset;
+		slice.endY = 120 + wallEndOffset;
 		slice.sourceX = (tile % TILE_SHEET_WIDTH) * TILE_WIDTH + int(textureX * TILE_WIDTH);
 		slice.sourceY = (tile / TILE_SHEET_WIDTH) * TILE_HEIGHT;
 		slice.sourceHeight = (TILE_HEIGHT >> 1) * (textureHeight + 1);
@@ -119,22 +121,23 @@ namespace drawsys {
 	}
 
 	float thetaFunction(float angle, int x) {
-		return angle + (float(x) - 119.5) * 0.006;
+		return angle + (119.5 - float(x)) * 0.0062;
 	}
 
-	void castWalls(AbstractEntity* player) {
+	void castWalls(PlayerEntity* player) {
 		float
 			x = player->x,
 			y = player->y,
+			z = player->headBob,
 			angle = player->angle;
 
 		for (int i = 0; i < 240; i++) {
 			float theta = thetaFunction(angle, i);
-			castWall(x, y, theta, i);
+			castWall(x, y, z, theta, i);
 		}
 	}
 
-	void renderSlices(AbstractEntity* player) {
+	void renderSlices(PlayerEntity* player) {
 		float angle = player->angle;
 
 		for (int x = 0; x < 240; x += 3) {
@@ -207,7 +210,7 @@ namespace drawsys {
 		}
 	}
 
-	void render(AbstractEntity* player) {
+	void render(PlayerEntity* player) {
 		castWalls(player);
 		renderSlices(player);
 	}
