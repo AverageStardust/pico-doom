@@ -145,11 +145,11 @@ namespace drawsys {
 			}
 			if (columnCount[x + 1]) {
 				DrawSlice wallSlice = columnSlices[x + 1][0];
-				startY = std::min(startY, wallSlice.startY);
+				startY = std::max(startY, wallSlice.startY);
 			}
 			if (columnCount[x + 2]) {
 				DrawSlice wallSlice = columnSlices[x + 2][0];
-				startY = std::min(startY, wallSlice.startY);
+				startY = std::max(startY, wallSlice.startY);
 			}
 			int skyX = int(thetaFunction(angle, x + 1) / M_PI / 2.0 * 256.0) & 0xFF;
 

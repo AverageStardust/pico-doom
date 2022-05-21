@@ -2,7 +2,7 @@
 
 using namespace picosystem;
 
-void rotateVector2(float &x, float &y, float angle) {
+void rotateVector2(float& x, float& y, float angle) {
 	float newX = x * cos(angle) - y * sin(angle);
 	y = x * sin(angle) + y * cos(angle);
 	x = newX;
@@ -41,6 +41,63 @@ public:
 		vy = 0.0;
 	}
 
+	void collideLevelPoint(float x, float y, std::vector<std::pair<float, float>>& solutions) {
+		int ix = int(x), iy = int(y);
+		if (!_tiledata[ix + iy * TILEDATA_WIDTH]) return;
+
+		if (x - ix < 0.5) {
+			if (!_tiledata[ix - 1 + iy * TILEDATA_WIDTH]) {
+				solutions.push_back(std::make_pair(ix - x, 0.0));
+			}
+		}
+		else {
+			if (!_tiledata[ix + 1 + iy * TILEDATA_WIDTH]) {
+				solutions.push_back(std::make_pair((ix + 1) - x, 0.0));
+			}
+		}
+
+		if (y - iy < 0.5) {
+			if (!_tiledata[ix + (iy - 1) * TILEDATA_WIDTH]) {
+				solutions.push_back(std::make_pair(0.0, iy - y));
+			}
+		}
+		else {
+			if (!_tiledata[ix + (iy + 1) * TILEDATA_WIDTH]) {
+				solutions.push_back(std::make_pair(0.0, (iy + 1) - y));
+			}
+		}
+	}
+
+	static bool compareLevelCollisionPairs(std::pair<float, float> a, std::pair<float, float> b) {
+		return abs(a.first) + abs(a.second) < abs(b.first) + abs(b.second);
+	}
+
+	void collideLevel(int tries = 4) {
+		if (!tries) return;
+
+		std::vector<std::pair<float, float>> solutions;
+		collideLevelPoint(x - size, y - size, solutions);
+		collideLevelPoint(x + size, y - size, solutions);
+		collideLevelPoint(x - size, y + size, solutions);
+		collideLevelPoint(x + size, y + size, solutions);
+		
+		if (!solutions.size()) return;
+
+		auto [solutionX, solutionY] =
+			*std::min_element(solutions.begin(), solutions.end(), compareLevelCollisionPairs);
+
+		if (solutionX != 0.0) {
+			x += solutionX * 1.05;
+			vx = 0;
+		}
+		if (solutionY != 0.0) {
+			y += solutionY * 1.05;
+			vy = 0;
+		}
+		
+		collideLevel(tries - 1);
+	}
+
 	void updateDrag(float amount) {
 		vx *= amount;
 		vy *= amount;
@@ -76,7 +133,7 @@ private:
 	float angularVelocity;
 public:
 	explicit PlayerEntity(float _x, float _y)
-		: AbstractAnimateEntity(_x, _y, 0.3, 100) {
+		: AbstractAnimateEntity(_x, _y, 0.2, 100) {
 		angularVelocity = 0.0;
 	}
 
@@ -87,10 +144,10 @@ public:
 		if (button(RIGHT)) {
 			angularVelocity = std::min(0.18, abs(angularVelocity + 0.008) * 1.7);
 		}
-		
+
 		angularVelocity *= 0.6;
 		angle += angularVelocity;
-		
+
 		if (button(UP)) {
 			vx += sin(angle) * 0.018;
 			vy += cos(angle) * 0.018;
@@ -105,10 +162,11 @@ public:
 		vy *= 0.8;
 		rotateVector2(vx, vy, -angle);
 		updateKinematics();
+		collideLevel();
 	}
 
 	void draw() {
-		
+
 	}
 };
 
