@@ -1,13 +1,13 @@
 #include "../../picoDoom/src/render.cpp"
 
-PlayerEntity* player = new PlayerEntity(2.5, 2.5);
+entity::PlayerEntity* player = new entity::PlayerEntity(2.5, 2.5);
 
 void init() {
 	addEntity(player);
 }
 
 void _update(uint32_t tick) {
-	updateEntities();
+	entity::updateEntities();
 }
 
 void update(uint32_t tick) {

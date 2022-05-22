@@ -23,6 +23,16 @@ namespace drawsys {
 	float columnDepth[240];
 	uint8_t columnCount[240];
 
+	DrawSlice createSlice(float dist, int topZ, int bottomZ, int sourceX, int sourceY, int sourceHeight) {
+		DrawSlice slice;
+		slice.startY = 120 - topZ / dist;
+		slice.endY = 120 + bottomZ / dist;
+		slice.sourceX = sourceX;
+		slice.sourceY = sourceY;
+		slice.sourceHeight = sourceHeight;
+		return slice;
+	}
+	
 	void appendSlice(int x, float depth, DrawSlice slice) {
 		int count = columnCount[x];
 		if (count == 4) return;
@@ -35,15 +45,5 @@ namespace drawsys {
 		columnCount[x] = 0; // clear column
 		columnDepth[x] = depth;
 		appendSlice(x, depth, slice);
-	}
-
-	DrawSlice createSlice(float dist, int topZ, int bottomZ, int sourceX, int sourceY, int sourceHeight) {
-		DrawSlice slice;
-		slice.startY = 120 - topZ / dist;
-		slice.endY = 120 + bottomZ / dist;
-		slice.sourceX = sourceX;
-		slice.sourceY = sourceY;
-		slice.sourceHeight = sourceHeight;
-		return slice;
 	}
 }

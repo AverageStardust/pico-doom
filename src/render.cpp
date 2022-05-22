@@ -3,8 +3,16 @@
 #include "../../picoDoom/src/entity.cpp"
 
 namespace drawsys {
-	void castWall(float x, float y, int z, float theta, int i) {
+	float thetaFunction(int x) {
+		float centerDist = (119.5 - float(x));
+		return centerDist * (abs(centerDist) * -0.00001 + 0.007);
+	}
+	
+	void sliceWall(float x, float y, int z, float angle, int i) {
+		float thetaOffset = thetaFunction(i);
+		float theta = angle + thetaOffset;
 		float dirX = sin(theta), dirY = cos(theta);
+		
 		int
 			mapX = int(x),
 			mapY = int(y),
@@ -48,12 +56,12 @@ namespace drawsys {
 
 		float wallDist, textureX;
 	hitX:
-		wallDist = (mapX - x + (1 - tileStepX) / 2.0) / dirX;
+		wallDist = ((mapX + (1 - tileStepX) / 2) - x) / dirX;
 		textureX = fmod(y + wallDist * dirY, 1.0);
 		if (tileStepX < 0) textureX = 1.0 - textureX;
 		goto hitGeneral;
 	hitY:
-		wallDist = (mapY - y + (1 - tileStepY) / 2.0) / dirY;
+		wallDist = ((mapY + (1 - tileStepY) / 2) - y) / dirY;
 		textureX = fmod(x + wallDist * dirX, 1.0);
 		if (tileStepY < 0) textureX = 1.0 - textureX;
 
@@ -62,22 +70,20 @@ namespace drawsys {
 		int wallScale = (tileData >> 8) % 16;
 		int textureHeight = tileData >> 12;
 
+		float trueDist = wallDist * cos(thetaOffset);
+
 		DrawSlice slice = createSlice(
-			wallDist,
+			trueDist,
 			SCENE_WALL_SCALE * wallScale - z,
 			SCENE_WALL_SCALE + z,
 			(tile % TILE_SHEET_WIDTH) * TILE_WIDTH + int(textureX * TILE_WIDTH),
 			(tile / TILE_SHEET_WIDTH) * TILE_HEIGHT,
 			(TILE_HEIGHT >> 1) * (textureHeight + 1)
 		);
-		appendWall(i, wallDist, slice);
+		appendWall(i, trueDist, slice);
 	}
 
-	float thetaFunction(float angle, int x) {
-		return angle + (119.5 - float(x)) * 0.0062;
-	}
-
-	void castWalls(AbstractDynamicEntity* player) {
+	void sliceWalls(entity::AbstractDynamicEntity* player) {
 		float
 			x = player->x,
 			y = player->y,
@@ -86,16 +92,15 @@ namespace drawsys {
 		float speed = hypot(player->vx, player->vy);
 		float z = 0;
 		if (speed > 0.03) {
-			z = (abs(sin(time() * 0.007)) - 0.5) * speed * 130.0;
+			z = (abs(sin(time() * 0.0055)) - 0.5) * speed * 150.0;
 		}
 
 		for (int i = 0; i < 240; i++) {
-			float theta = thetaFunction(angle, i);
-			castWall(x, y, round(z), theta, i);
+			sliceWall(x, y, z, angle, i);
 		}
 	}
 
-	void renderSlices(AbstractDynamicEntity* player) {
+	void renderSlices(entity::AbstractDynamicEntity* player) {
 		float angle = player->angle;
 
 		for (int x = 0; x < 240; x += 3) {
@@ -112,7 +117,8 @@ namespace drawsys {
 				DrawSlice wallSlice = columnSlices[x + 2][0];
 				startY = std::max(startY, wallSlice.startY);
 			}
-			int skyX = int(thetaFunction(angle, x + 1) / M_PI / 2.0 * 256.0) & 0xFF;
+			float theta = (thetaFunction(x + 1) + angle);
+			int skyX = int(theta / M_PI / 2.0 * 256.0) & 0xFF;
 
 			int screenIndex = x;
 			for (int y = 0; y < startY; y += 2) {
@@ -168,8 +174,8 @@ namespace drawsys {
 		}
 	}
 
-	void render(AbstractDynamicEntity* player) {
-		castWalls(player);
+	void render(entity::AbstractDynamicEntity* player) {
+		sliceWalls(player);
 		renderSlices(player);
 	}
 }
