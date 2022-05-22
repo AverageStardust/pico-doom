@@ -1,10 +1,4 @@
-#include "picosystem.hpp"
-
-#include "../../picoDoom/src/spritesheet.cpp"
-#include "../../picoDoom/src/leveldata.cpp"
-#include "../../picoDoom/src/drawsystem.cpp"
-
-using namespace picosystem;
+#include "../../picoDoom/src/render.cpp"
 
 PlayerEntity* player = new PlayerEntity(2.5, 2.5);
 

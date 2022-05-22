@@ -1,55 +1,9 @@
 #include <algorithm>
-#include <math.h>
-#include <float.h>
-
-#include "picosystem.hpp"
 
 #include "../../picoDoom/src/entity.cpp"
 
-using namespace picosystem;
-
-int sign(float val) {
-	return val < 0.0f ? -1.0f : 1.0f;
-}
-
 namespace drawsys {
-	const int TILE_WIDTH = 64;
-	const int TILE_HEIGHT = 64;
-	const int TILE_SHEET_WIDTH = _spritesheet->h / TILE_WIDTH;
-
-	const int PALETTE_X = 256;
-	const int PALETTE_Y = 191;
-	const int SCENE_TEXTURE_X = 256;
-	const int SCENE_TEXTURE_Y = 128;
-	const float SCENE_WALL_SCALE = 90.0;
-
-	struct DrawSlice {
-		int startY;
-		int endY;
-		uint16_t sourceX;
-		uint16_t sourceY;
-		int sourceHeight;
-	};
-
-	DrawSlice columnSlices[240][4];
-	float columnDepth[240];
-	uint8_t columnCount[240];
-
-	void appendSlice(int x, float depth, DrawSlice slice) {
-		int count = columnCount[x];
-		if (count == 4) return;
-		if (depth > columnDepth[x]) return;
-		columnSlices[x][count] = slice;
-		columnCount[x]++;
-	}
-
-	void appendWall(int x, float depth, DrawSlice slice) {
-		columnCount[x] = 0; // clear column
-		columnDepth[x] = depth;
-		appendSlice(x, depth, slice);
-	}
-
-	void castWall(float x, float y, float z, float theta, int i) {
+	void castWall(float x, float y, int z, float theta, int i) {
 		float dirX = sin(theta), dirY = cos(theta);
 		int
 			mapX = int(x),
@@ -105,18 +59,17 @@ namespace drawsys {
 
 	hitGeneral:
 		int tile = (tileData % 256);
-		float wallScale = (tileData >> 8) % 16;
+		int wallScale = (tileData >> 8) % 16;
 		int textureHeight = tileData >> 12;
 
-		int wallStartOffset = int((SCENE_WALL_SCALE * wallScale - z) / wallDist);
-		int wallEndOffset = int((SCENE_WALL_SCALE + z) / wallDist);
-
-		DrawSlice slice;
-		slice.startY = 120 - wallStartOffset;
-		slice.endY = 120 + wallEndOffset;
-		slice.sourceX = (tile % TILE_SHEET_WIDTH) * TILE_WIDTH + int(textureX * TILE_WIDTH);
-		slice.sourceY = (tile / TILE_SHEET_WIDTH) * TILE_HEIGHT;
-		slice.sourceHeight = (TILE_HEIGHT >> 1) * (textureHeight + 1);
+		DrawSlice slice = createSlice(
+			wallDist,
+			SCENE_WALL_SCALE * wallScale - z,
+			SCENE_WALL_SCALE + z,
+			(tile % TILE_SHEET_WIDTH) * TILE_WIDTH + int(textureX * TILE_WIDTH),
+			(tile / TILE_SHEET_WIDTH) * TILE_HEIGHT,
+			(TILE_HEIGHT >> 1) * (textureHeight + 1)
+		);
 		appendWall(i, wallDist, slice);
 	}
 
@@ -124,20 +77,25 @@ namespace drawsys {
 		return angle + (119.5 - float(x)) * 0.0062;
 	}
 
-	void castWalls(PlayerEntity* player) {
+	void castWalls(AbstractDynamicEntity* player) {
 		float
 			x = player->x,
 			y = player->y,
-			z = player->headBob,
 			angle = player->angle;
+
+		float speed = hypot(player->vx, player->vy);
+		float z = 0;
+		if (speed > 0.03) {
+			z = (abs(sin(time() * 0.007)) - 0.5) * speed * 130.0;
+		}
 
 		for (int i = 0; i < 240; i++) {
 			float theta = thetaFunction(angle, i);
-			castWall(x, y, z, theta, i);
+			castWall(x, y, round(z), theta, i);
 		}
 	}
 
-	void renderSlices(PlayerEntity* player) {
+	void renderSlices(AbstractDynamicEntity* player) {
 		float angle = player->angle;
 
 		for (int x = 0; x < 240; x += 3) {
@@ -210,7 +168,7 @@ namespace drawsys {
 		}
 	}
 
-	void render(PlayerEntity* player) {
+	void render(AbstractDynamicEntity* player) {
 		castWalls(player);
 		renderSlices(player);
 	}

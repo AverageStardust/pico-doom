@@ -1,12 +1,6 @@
-#include "picosystem.hpp"
-
-using namespace picosystem;
-
-void rotateVector2(float& x, float& y, float angle) {
-	float newX = x * cos(angle) - y * sin(angle);
-	y = x * sin(angle) + y * cos(angle);
-	x = newX;
-}
+#include "../../picoDoom/src/common.cpp"
+#include "../../picoDoom/src/leveldata.cpp"
+#include "../../picoDoom/src/drawsys.cpp"
 
 class AbstractEntity {
 public:
@@ -129,14 +123,11 @@ public:
 };
 
 class PlayerEntity : public AbstractAnimateEntity {
-public:
-	float headBob;
 private:
 	float angularVelocity;
 public:
 	explicit PlayerEntity(float _x, float _y)
 		: AbstractAnimateEntity(_x, _y, 0.2, 100) {
-		headBob = 0.0;
 		angularVelocity = 0.0;
 	}
 
@@ -166,8 +157,6 @@ public:
 		rotateVector2(vx, vy, -angle);
 		updateKinematics();
 		collideLevel();
-
-		headBob = (abs(sin(time() * 0.007)) - 0.5) * 130.0 * hypot(vx, vy);
 	}
 
 	void draw() {
