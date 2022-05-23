@@ -26,16 +26,16 @@ namespace drawsys {
 	DrawSlice createSlice(float dist, int topZ, int bottomZ, int sourceX, int sourceY, int sourceHeight) {
 		DrawSlice slice;
 		slice.startY = 120 - topZ / dist;
-		slice.endY = 120 + bottomZ / dist;
+		slice.endY = 120 - bottomZ / dist;
 		slice.sourceX = sourceX;
 		slice.sourceY = sourceY;
 		slice.sourceHeight = sourceHeight;
 		return slice;
 	}
-	
+
 	void appendSlice(int x, float depth, DrawSlice slice) {
 		int count = columnCount[x];
-		if (count == 4) return;
+		if (count >= 4) return;
 		if (depth > columnDepth[x]) return;
 		columnSlices[x][count] = slice;
 		columnCount[x]++;
@@ -45,5 +45,18 @@ namespace drawsys {
 		columnCount[x] = 0; // clear column
 		columnDepth[x] = depth;
 		appendSlice(x, depth, slice);
+	}
+
+	float columnToTheta(int x) {
+		float centerDist = (119.5 - float(x));
+		return centerDist * (abs(centerDist) * -0.00001 + 0.007);
+	}
+
+	int thetaToColumn(float theta) {
+		if (theta > 1.225) return 420;
+		if (theta < -1.225) return -180;
+		float discriminant = 0.000049 - 0.00004 * abs(theta);
+		float absColumn = (0.007 - sqrt(discriminant)) / 0.00002;
+		return int((absColumn * sign(theta)) + 119.5);
 	}
 }

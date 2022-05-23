@@ -4,6 +4,8 @@ entity::PlayerEntity* player = new entity::PlayerEntity(2.5, 2.5);
 
 void init() {
 	addEntity(player);
+	entity::DoorEntity* door = new entity::DoorEntity(4.5, 1.5, 0.0);
+	addEntity(door);
 }
 
 void _update(uint32_t tick) {

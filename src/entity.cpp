@@ -7,6 +7,7 @@ namespace entity {
 	public:
 		float x;
 		float y;
+		float z;
 		float angle;
 		float size;
 		uint16_t collisionType;
@@ -16,12 +17,74 @@ namespace entity {
 		explicit AbstractEntity(float _x, float _y, float _size) {
 			x = _x;
 			y = _y;
+			z = 0;
 			angle = 0.0;
 			size = _size;
 		}
 
+		void drawSurface(AbstractEntity* player, float angle, float radius, float height, int sourceX, int sourceY, int sourceWidth, int sourceHeight) {
+			float
+				px = player->x,
+				py = player->y,
+				pz = player->z,
+				pa = player->angle;
+			float
+				x1 = x + sin(angle) * radius,
+				y1 = y + cos(angle) * radius,
+				x2 = x - sin(angle) * radius,
+				y2 = y - cos(angle) * radius;
+			float
+				angle1 = wrapAngle(pa - atan2f(x1 - px, y1 - py)),
+				angle2 = wrapAngle(pa - atan2f(x2 - px, y2 - py));
+			int
+				column1 = drawsys::thetaToColumn(angle1),
+				column2 = drawsys::thetaToColumn(angle2);
+			float
+				dist1 = hypotf(x1 - px, y1 - py) * cos(angle1),
+				dist2 = hypotf(x2 - px, y2 - py) * cos(angle2);
+			int
+				topZ = int(height * float(drawsys::SCENE_WALL_SCALE)) - drawsys::SCENE_WALL_SCALE - pz,
+				bottomZ = -drawsys::SCENE_WALL_SCALE - pz;
+
+			float columnRatio = 1.0 / abs(column1 - column2);
+			if (column1 > column2) {
+				std::swap(column1, column2);
+				std::swap(dist1, dist2);
+			}
+			int startColumn = std::max(0, column1);
+			int endColumn = std::min(239, column2);
+			for (int i = startColumn; i <= endColumn; i++) {
+				float surfaceX = float(i - column1) * columnRatio;
+				float dist = dist1 + (dist2 - dist1) * surfaceX;
+				if (dist < 0.2) continue;
+
+				drawsys::DrawSlice slice = drawsys::createSlice(
+					dist,
+					topZ,
+					bottomZ,
+					sourceX + int(float(sourceWidth) * surfaceX),
+					sourceY,
+					sourceHeight
+				);
+				drawsys::appendWall(i, dist, slice);
+			}
+		}
+
 		virtual void update() = 0;
-		virtual void draw() = 0;
+		virtual void draw(AbstractEntity* player) = 0;
+	};
+
+	class DoorEntity : public AbstractEntity {
+	public:
+		explicit DoorEntity(float _x, float _y, float _angle)
+			: AbstractEntity(_x, _y, 0.5) {
+			angle = _angle;
+		}
+
+		void update() {}
+		void draw(AbstractEntity* player) {
+			drawSurface(player, angle, 0.5, 2.0, 320, 0, 64, 64);
+		}
 	};
 
 	class AbstractDynamicEntity : public AbstractEntity {
@@ -158,9 +221,17 @@ namespace entity {
 			rotateVector2(vx, vy, -angle);
 			updateKinematics();
 			collideLevel();
+
+			float speed = hypotf(vx, vy);
+			if (speed > 0.03) {
+				z = (abs(sin(time() * 0.0055)) - 0.5) * speed * 150.0;
+			}
+			else {
+				z = 0;
+			}
 		}
 
-		void draw() {
+		void draw(AbstractEntity* player) {
 
 		}
 	};
@@ -174,6 +245,12 @@ namespace entity {
 	void updateEntities() {
 		for (int i = 0; i < entities.size(); i++) {
 			entities[i]->update();
+		}
+	}
+
+	void drawEntities(AbstractEntity* player) {
+		for (int i = 0; i < entities.size(); i++) {
+			entities[i]->draw(player);
 		}
 	}
 }

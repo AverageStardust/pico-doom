@@ -3,16 +3,11 @@
 #include "../../picoDoom/src/entity.cpp"
 
 namespace drawsys {
-	float thetaFunction(int x) {
-		float centerDist = (119.5 - float(x));
-		return centerDist * (abs(centerDist) * -0.00001 + 0.007);
-	}
-	
 	void sliceWall(float x, float y, int z, float angle, int i) {
-		float thetaOffset = thetaFunction(i);
+		float thetaOffset = columnToTheta(i);
 		float theta = angle + thetaOffset;
 		float dirX = sin(theta), dirY = cos(theta);
-		
+
 		int
 			mapX = int(x),
 			mapY = int(y),
@@ -75,7 +70,7 @@ namespace drawsys {
 		DrawSlice slice = createSlice(
 			trueDist,
 			SCENE_WALL_SCALE * wallScale - z,
-			SCENE_WALL_SCALE + z,
+			-SCENE_WALL_SCALE - z,
 			(tile % TILE_SHEET_WIDTH) * TILE_WIDTH + int(textureX * TILE_WIDTH),
 			(tile / TILE_SHEET_WIDTH) * TILE_HEIGHT,
 			(TILE_HEIGHT >> 1) * (textureHeight + 1)
@@ -83,24 +78,19 @@ namespace drawsys {
 		appendWall(i, trueDist, slice);
 	}
 
-	void sliceWalls(entity::AbstractDynamicEntity* player) {
+	void sliceWalls(entity::AbstractEntity* player) {
 		float
 			x = player->x,
 			y = player->y,
+			z = player->z,
 			angle = player->angle;
-
-		float speed = hypot(player->vx, player->vy);
-		float z = 0;
-		if (speed > 0.03) {
-			z = (abs(sin(time() * 0.0055)) - 0.5) * speed * 150.0;
-		}
 
 		for (int i = 0; i < 240; i++) {
 			sliceWall(x, y, z, angle, i);
 		}
 	}
 
-	void renderSlices(entity::AbstractDynamicEntity* player) {
+	void renderSlices(entity::AbstractEntity* player) {
 		float angle = player->angle;
 
 		for (int x = 0; x < 240; x += 3) {
@@ -117,8 +107,8 @@ namespace drawsys {
 				DrawSlice wallSlice = columnSlices[x + 2][0];
 				startY = std::max(startY, wallSlice.startY);
 			}
-			float theta = (thetaFunction(x + 1) + angle);
-			int skyX = int(theta / M_PI / 2.0 * 256.0) & 0xFF;
+			float theta = (columnToTheta(x + 1) + angle);
+			int skyX = int(theta / TAU * 256.0) & 0xFF;
 
 			int screenIndex = x;
 			for (int y = 0; y < startY; y += 2) {
@@ -134,17 +124,15 @@ namespace drawsys {
 		}
 
 		for (int x = 0; x < 240; x++) {
-			int endY = 120;
-			if (columnCount[x]) {
+			{ // draw floor
 				DrawSlice wallSlice = columnSlices[x][0];
-				endY = wallSlice.endY;
-			}
-			int startIndex = x + endY * 240;
-			for (int i = startIndex; i < 240 * 240; i += 240) {
-				SCREEN->data[i] = 0x22F3;
+				int startIndex = x + wallSlice.endY * 240;
+				for (int i = startIndex; i < 240 * 240; i += 240) {
+					SCREEN->data[i] = 0x22F3;
+				}
 			}
 			// draw contents of column
-			for (int i = 0; i < columnCount[x]; i++) {
+			for (int i = 0; i < 2; i++) {
 				DrawSlice slice = columnSlices[x][i];
 				// screen pixel to texture pixel ratio
 				uint32_t sourceRatio = uint32_t(float(slice.sourceHeight) / float(slice.endY - slice.startY) * 4194304.0) - 4096;
@@ -161,21 +149,22 @@ namespace drawsys {
 					}
 				}
 				else {
-					for (int j = drawStart; j < drawEnd; j++) {
-						int sourceY = slice.sourceY + (sourceLocation >> 24);
+					for (int j = drawStart; j < drawEnd; j += 240) {
+						int sourceY = slice.sourceY + (sourceLocation >> 22);
 						sourceLocation += sourceRatio;
 						uint16_t pixel = *_spritesheet->p(sourceY, slice.sourceX);
 						// skip alpha
 						if (pixel & 0x00F0 == 0) continue;
-						SCREEN->data[x + (slice.startY + j) * 240] = pixel;
+						SCREEN->data[x + j] = pixel;
 					}
 				}
 			}
 		}
 	}
 
-	void render(entity::AbstractDynamicEntity* player) {
+	void render(entity::AbstractEntity* player) {
 		sliceWalls(player);
+		entity::drawEntities(player);
 		renderSlices(player);
 	}
 }
